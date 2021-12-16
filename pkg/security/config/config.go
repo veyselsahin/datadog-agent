@@ -86,7 +86,7 @@ type Config struct {
 	LogPatterns []string
 	// SelfTestEnabled defines if the self tester should be enabled (useful for tests for example)
 	SelfTestEnabled bool
-	// EnableRemoteConfig defines if configuration should be fetched from the backend
+	// EnableRemoteConfig defines if the agent configuration should be fetched from the backend
 	EnableRemoteConfig bool
 	// EnableRuntimeCompiledConstants defines if the runtime compilation based constant fetcher is enabled
 	EnableRuntimeCompiledConstants bool
@@ -97,6 +97,8 @@ type Config struct {
 	// ActivityDumpCleanupPeriod defines the period at which the activity dump manager should perform its cleanup
 	// operation.
 	ActivityDumpCleanupPeriod time.Duration
+	// NetworkEnabled defines if the network probes should be activated
+	NetworkEnabled bool
 }
 
 // IsEnabled returns true if any feature is enabled. Has to be applied in config package too
@@ -141,6 +143,7 @@ func NewConfig(cfg *config.Config) (*Config, error) {
 		RuntimeCompiledConstantsIsSet:      aconfig.Datadog.IsSet("runtime_security_config.enable_runtime_compiled_constants"),
 		ActivityDumpEnabled:                aconfig.Datadog.GetBool("runtime_security_config.activity_dump_manager.enabled"),
 		ActivityDumpCleanupPeriod:          time.Duration(aconfig.Datadog.GetInt("runtime_security_config.activity_dump_manager.cleanup_period")) * time.Second,
+		NetworkEnabled:                     aconfig.Datadog.GetBool("runtime_security_config.network.enabled"),
 	}
 
 	// if runtime is enabled then we force fim

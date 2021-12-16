@@ -990,6 +990,7 @@ func InitConfig(config Config) {
 	config.BindEnv("runtime_security_config.enable_runtime_compiled_constants")
 	config.BindEnvAndSetDefault("runtime_security_config.activity_dump_manager.enabled", false)
 	config.BindEnvAndSetDefault("runtime_security_config.activity_dump_manager.cleanup_period", 30)
+	config.BindEnvAndSetDefault("runtime_security_config.network.enabled", false)
 
 	// Serverless Agent
 	config.BindEnvAndSetDefault("serverless.logs_enabled", true)

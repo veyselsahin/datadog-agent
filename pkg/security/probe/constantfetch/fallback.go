@@ -68,6 +68,14 @@ func (f *FallbackConstantFetcher) appendRequest(id string) {
 		value = getSizeOfUpid(f.kernelVersion)
 	case "dentry_sb_offset":
 		value = getDentrySuperBlockOffset(f.kernelVersion)
+	case "net_device_ifindex_offset":
+		value = getNetDeviceIfindexOffset(f.kernelVersion)
+	case "net_ns_offset":
+		value = getNetNSOffset(f.kernelVersion)
+	case "sock_common_skc_net_offset":
+		value = getSockCommonSKCNetOffset(f.kernelVersion)
+	case "socket_sock_offset":
+		value = getSocketSockOffset(f.kernelVersion)
 	}
 	f.res[id] = value
 }
@@ -395,6 +403,42 @@ func getDentrySuperBlockOffset(kv *kernel.Version) uint64 {
 	switch {
 	case kv.IsCOSKernel():
 		offset = 128
+	}
+
+	return offset
+}
+
+func getNetDeviceIfindexOffset(kv *kernel.Version) uint64 {
+	offset := uint64(260)
+
+	switch {
+	case kv.Code >= kernel.Kernel4_16 && kv.Code < kernel.Kernel5_8:
+		offset = uint64(264)
+	case kv.Code >= kernel.Kernel5_8 && kv.Code < kernel.Kernel5_12:
+		offset = uint64(256)
+	case kv.Code >= kernel.Kernel5_12 && kv.Code < kernel.Kernel5_16:
+		offset = uint64(208)
+	case kv.Code >= kernel.Kernel5_16:
+		offset = uint64(212)
+	}
+
+	return offset
+}
+
+func getNetNSOffset(kv *kernel.Version) uint64 {
+	return uint64(120)
+}
+
+func getSockCommonSKCNetOffset(kv *kernel.Version) uint64 {
+	return uint64(48)
+}
+
+func getSocketSockOffset(kv *kernel.Version) uint64 {
+	offset := uint64(32)
+
+	switch {
+	case kv.Code >= kernel.Kernel5_3:
+		offset = uint64(24)
 	}
 
 	return offset

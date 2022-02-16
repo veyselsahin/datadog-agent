@@ -248,14 +248,42 @@ type SignalEventSerializer struct {
 	Target *ProcessContextSerializer `json:"target,omitempty" jsonschema_description:"process context of the signal target"`
 }
 
+// NetworkDeviceSerializer serializes the network device context to JSON
+type NetworkDeviceSerializer struct {
+	NetNS   uint32 `json:"netns" jsonschema_description:"netns is the interface ifindex"`
+	IfIndex uint32 `json:"ifindex" jsonschema_description:"ifindex is the network interface ifindex"`
+	IfName  string `json:"ifname" jsonschema_description:"ifname is the network interface name"`
+}
+
+type IPPortSerializer struct {
+	IP   string `json:"ip" jsonschema_description:"IP address"`
+	Port uint16 `json:"port" jsonschema_description:"Port number"`
+}
+
+// NetworkContextSerializer serializes the network context to JSON
+type NetworkContextSerializer struct {
+	Device *NetworkDeviceSerializer `json:"device,omitempty" jsonschema_description:"device is the network device on which the event was captured"`
+
+	L3Protocol  string            `json:"l3_protocol" jsonschema_description:"l3_protocol is the layer 3 procotocol name"`
+	L4Protocol  string            `json:"l4_protocol" jsonschema_description:"l4_protocol is the layer 4 procotocol name"`
+	Source      *IPPortSerializer `json:"source" jsonschema_description:"source is the emitter of the network event"`
+	Destination *IPPortSerializer `json:"destination" jsonschema_description:"destination is the receiver of the network event"`
+	Size        uint32            `json:"size" jsonschema_description:"size is the size in bytes of the network event"`
+}
+
+// DNSQuestionSerializer serializes a DNS question to JSON
+type DNSQuestionSerializer struct {
+	Class string `json:"class" jsonschema_description:"class is the class looked up by the DNS question"`
+	Type  string `json:"type" jsonschema_description:"type is a two octet code which specifies the DNS question type"`
+	Name  string `json:"name" jsonschema_description:"name is the queried domain name"`
+	Size  uint16 `json:"size" jsonschema_description:"size is the total DNS request size in bytes"`
+	Count uint16 `json:"count" jsonschema_description:"count is the total count of questions in the DNS request"`
+}
+
 // DNSEventSerializer serializes a dns event to JSON
 type DNSEventSerializer struct {
-	ID          int    `json:"id" jsonschema_description:"id is the unique identifier of the DNS request"`
-	QDCount     int    `json:"qdcount" jsonschema_description:"qdcount is the number of questions in the DNS request"`
-	QClass      string `json:"qclass" jsonschema_description:"qclass is the class of the DNS request"`
-	QType       string `json:"qtype" jsonschema_description:"qtype is the type of the DNS request"`
-	DNSServerIP string `json:"dns_server_ip" jsonschema_description:"dns_server_ip is the DNS server IP to which the DNS request was sent"`
-	Name        string `json:"name" jsonschema_description:"name of the DNS request"`
+	ID       uint16                 `json:"id" jsonschema_description:"id is the unique identifier of the DNS request"`
+	Question *DNSQuestionSerializer `json:"question,omitempty" jsonschema_description:"question is a DNS question for the DNS request"`
 }
 
 // DDContextSerializer serializes a span context to JSON
@@ -289,6 +317,7 @@ type EventSerializer struct {
 	DDContextSerializer        DDContextSerializer         `json:"dd,omitempty"`
 	ContainerContextSerializer *ContainerContextSerializer `json:"container,omitempty"`
 	Date                       time.Time                   `json:"date,omitempty"`
+	NetworkContextSerializer   *NetworkContextSerializer   `json:"network,omitempty"`
 }
 
 func getInUpperLayer(r *Resolvers, f *model.FileFields) *bool {
@@ -438,7 +467,7 @@ func newProcessContextSerializer(entry *model.ProcessCacheEntry, e *Event, r *Re
 
 	if e == nil {
 		// custom events create an empty event
-		e = NewEvent(r, nil)
+		e = NewEvent(r, nil, nil)
 		e.ProcessContext = model.ProcessContext{
 			Ancestor: entry,
 		}
@@ -600,13 +629,46 @@ func newSignalEventSerializer(e *Event) *SignalEventSerializer {
 }
 
 func newDNSEventSerializer(e *Event) *DNSEventSerializer {
+func newDNSQuestionSerializer(d *model.DNSEvent) *DNSQuestionSerializer {
+	return &DNSQuestionSerializer{
+		Class: model.QClass(d.Class).String(),
+		Type:  model.QType(d.Type).String(),
+		Name:  d.Name,
+		Size:  d.Size,
+		Count: d.Count,
+	}
+}
+
+func newDNSEventSerializer(d *model.DNSEvent) *DNSEventSerializer {
 	return &DNSEventSerializer{
-		ID:          int(e.DNS.ID),
-		QDCount:     int(e.DNS.QDCount),
-		QClass:      model.QClass(e.DNS.QClass).String(),
-		QType:       model.QType(e.DNS.QType).String(),
-		DNSServerIP: e.DNS.DNSServerIP.String(),
-		Name:        e.DNS.Name,
+		ID:       d.ID,
+		Question: newDNSQuestionSerializer(d),
+	}
+}
+
+func newIPPortSerializer(c *model.IpPortContext) *IPPortSerializer {
+	return &IPPortSerializer{
+		IP:   c.IP.String(),
+		Port: c.Port,
+	}
+}
+
+func newNetworkDeviceSerializer(e *Event) *NetworkDeviceSerializer {
+	return &NetworkDeviceSerializer{
+		NetNS:   e.NetworkContext.Device.NetNS,
+		IfIndex: e.NetworkContext.Device.IfIndex,
+		IfName:  e.ResolveNetworkDeviceIfName(&e.NetworkContext.Device),
+	}
+}
+
+func newNetworkContextSerializer(e *Event) *NetworkContextSerializer {
+	return &NetworkContextSerializer{
+		Device:      newNetworkDeviceSerializer(e),
+		L3Protocol:  model.L3Protocol(e.NetworkContext.L3Protocol).String(),
+		L4Protocol:  model.L4Protocol(e.NetworkContext.L4Protocol).String(),
+		Source:      newIPPortSerializer(&e.NetworkContext.Source),
+		Destination: newIPPortSerializer(&e.NetworkContext.Destination),
+		Size:        e.NetworkContext.Size,
 	}
 }
 
@@ -645,6 +707,10 @@ func NewEventSerializer(event *Event) *EventSerializer {
 	eventType := model.EventType(event.Type)
 
 	s.Category = model.GetEventTypeCategory(eventType.String())
+
+	if s.Category == model.NetworkCategory {
+		s.NetworkContextSerializer = newNetworkContextSerializer(event)
+	}
 
 	switch eventType {
 	case model.FileChmodEventType:
@@ -835,8 +901,8 @@ func NewEventSerializer(event *Event) *EventSerializer {
 		s.EventContextSerializer.Outcome = serializeSyscallRetval(event.Signal.Retval)
 		s.SignalEventSerializer = newSignalEventSerializer(event)
 	case model.DNSEventType:
-		s.EventContextSerializer.Outcome = serializeSyscallRetval(event.DNS.Retval)
-		s.DNSEventSerializer = newDNSEventSerializer(event)
+		s.EventContextSerializer.Outcome = serializeSyscallRetval(0)
+		s.DNSEventSerializer = newDNSEventSerializer(&event.DNS)
 	}
 
 	return s

@@ -99,7 +99,7 @@ type RuleEvent struct {
 	Event  Event  `json:"event"`
 }
 
-// DumpProcessCache handle process dump cache requests
+// DumpProcessCache handles process cache dump requests
 func (a *APIServer) DumpProcessCache(ctx context.Context, params *api.DumpProcessCacheParams) (*api.SecurityDumpProcessCacheMessage, error) {
 	resolvers := a.probe.GetResolvers()
 
@@ -176,6 +176,11 @@ func (a *APIServer) GenerateProfile(ctx context.Context, params *api.GeneratePro
 	return &api.SecurityProfileGeneratedMessage{
 		ProfilePath: output,
 	}, nil
+}
+
+// DumpNetworkNamespace handles network namespace cache dump requests
+func (a *APIServer) DumpNetworkNamespace(ctx context.Context, params *api.DumpNetworkNamespaceParams) (*api.DumpNetworkNamespaceMessage, error) {
+	return a.probe.GetResolvers().NamespaceResolver.DumpNetworkNamespaces(params), nil
 }
 
 func (a *APIServer) enqueue(msg *pendingMsg) {

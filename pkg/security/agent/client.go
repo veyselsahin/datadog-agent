@@ -22,7 +22,7 @@ type RuntimeSecurityClient struct {
 	conn      *grpc.ClientConn
 }
 
-// DumpProcessCache send a dump request
+// DumpProcessCache sends a process cache dump request
 func (c *RuntimeSecurityClient) DumpProcessCache(withArgs bool) (string, error) {
 	response, err := c.apiClient.DumpProcessCache(context.Background(), &api.DumpProcessCacheParams{WithArgs: withArgs})
 	if err != nil {
@@ -89,6 +89,11 @@ func (c *RuntimeSecurityClient) GenerateProfile(file string) (string, error) {
 	}
 
 	return response.ProfilePath, nil
+}
+
+// DumpNetworkNamespace sends a network namespace cache dump request
+func (c *RuntimeSecurityClient) DumpNetworkNamespace(snapshotInterfaces bool) (*api.DumpNetworkNamespaceMessage, error) {
+	return c.apiClient.DumpNetworkNamespace(context.Background(), &api.DumpNetworkNamespaceParams{SnapshotInterfaces: snapshotInterfaces})
 }
 
 // GetConfig retrieves the config of the runtime security module

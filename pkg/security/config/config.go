@@ -99,6 +99,10 @@ type Config struct {
 	ActivityDumpCleanupPeriod time.Duration
 	// NetworkEnabled defines if the network probes should be activated
 	NetworkEnabled bool
+	// NetworkLazyInterfacePrefixes is the list of interfaces prefix that aren't explicitly deleted by the container
+	// runtime, and that are lazily deleted by the kernel when a network namespace is cleaned up. This list helps the
+	// agent detect when a network namespace should be purged from all caches.
+	NetworkLazyInterfacePrefixes []string
 }
 
 // IsEnabled returns true if any feature is enabled. Has to be applied in config package too
@@ -144,6 +148,7 @@ func NewConfig(cfg *config.Config) (*Config, error) {
 		ActivityDumpEnabled:                aconfig.Datadog.GetBool("runtime_security_config.activity_dump_manager.enabled"),
 		ActivityDumpCleanupPeriod:          time.Duration(aconfig.Datadog.GetInt("runtime_security_config.activity_dump_manager.cleanup_period")) * time.Second,
 		NetworkEnabled:                     aconfig.Datadog.GetBool("runtime_security_config.network.enabled"),
+		NetworkLazyInterfacePrefixes:       aconfig.Datadog.GetStringSlice("runtime_security_config.network.lazy_interface_prefixes"),
 	}
 
 	// if runtime is enabled then we force fim
@@ -178,6 +183,18 @@ func NewConfig(cfg *config.Config) (*Config, error) {
 	serviceName := utils.GetTagValue("service", aconfig.GetConfiguredTags(true))
 	if len(serviceName) > 0 {
 		c.HostServiceName = fmt.Sprintf("service:%s", serviceName)
+	}
+
+	lazyInterfaces := make(map[string]bool)
+	for _, name := range c.NetworkLazyInterfacePrefixes {
+		lazyInterfaces[name] = true
+	}
+	// make sure to append both `lo` and `dummy` in the list of `runtime_security_config.network.lazy_interface_prefixes`
+	lazyDefaults := []string{"lo", "dummy"}
+	for _, name := range lazyDefaults {
+		if !lazyInterfaces[name] {
+			c.NetworkLazyInterfacePrefixes = append(c.NetworkLazyInterfacePrefixes, name)
+		}
 	}
 
 	return c, nil

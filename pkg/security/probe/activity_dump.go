@@ -686,7 +686,9 @@ func (pan *ProcessActivityNode) snapshot(ad *ActivityDump) error {
 		if !ok {
 			continue
 		}
-		evt := NewEvent(ad.resolvers, ad.scrubber)
+
+		// TODO(will): replace nil by the real probe once will/cgroup-selector is merged
+		evt := NewEvent(ad.resolvers, ad.scrubber, nil)
 		evt.Event.Type = uint64(model.FileOpenEventType)
 
 		resolvedPath, err = filepath.EvalSymlinks(f)

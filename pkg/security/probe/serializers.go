@@ -629,7 +629,6 @@ func newSignalEventSerializer(e *Event) *SignalEventSerializer {
 	return ses
 }
 
-func newDNSEventSerializer(e *Event) *DNSEventSerializer {
 func newDNSQuestionSerializer(d *model.DNSEvent) *DNSQuestionSerializer {
 	return &DNSQuestionSerializer{
 		Class: model.QClass(d.Class).String(),

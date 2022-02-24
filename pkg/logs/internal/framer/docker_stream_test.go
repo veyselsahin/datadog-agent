@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package breaker
+package framer
 
 import (
 	"fmt"
@@ -38,13 +38,13 @@ func TestDetectDockerHeader(t *testing.T) {
 		gotLens = append(gotLens, rawDataLen)
 	}
 
-	lb := NewLineBreaker(outputFn, DockerStream, 256000)
+	fr := NewFramer(outputFn, DockerStream, 256000)
 
 	for i := 4; i < 8; i++ {
 		input := []byte("hello\n")
 		input = append(input, getDummyHeader(i)...) // docker header
 		input = append(input, []byte("2018-06-14T18:27:03.246999277Z app logs\n")...)
-		lb.Process(input)
+		fr.Process(input)
 	}
 	assert.Equal(t, []string{
 		"hello",
@@ -67,14 +67,14 @@ func TestDetectMultipleDockerHeader(t *testing.T) {
 		gotLens = append(gotLens, rawDataLen)
 	}
 
-	lb := NewLineBreaker(outputFn, DockerStream, 256000)
+	fr := NewFramer(outputFn, DockerStream, 256000)
 
 	var input []byte
 	for i := 0; i < 100; i++ {
 		input = append(input, getDummyHeader(4+i%4)...) // docker header
 		input = append(input, []byte(fmt.Sprintf("2018-06-14T18:27:03.246999277Z app logs %d\n", i))...)
 	}
-	lb.Process(input)
+	fr.Process(input)
 
 	for i := 0; i < 100; i++ {
 		data := []byte(fmt.Sprintf("2018-06-14T18:27:03.246999277Z app logs %d", i))
@@ -91,7 +91,7 @@ func TestDetectMultipleDockerHeaderOnAChunkedLine(t *testing.T) {
 		gotLens = append(gotLens, rawDataLen)
 	}
 
-	lb := NewLineBreaker(outputFn, DockerStream, 256000)
+	fr := NewFramer(outputFn, DockerStream, 256000)
 
 	var input []byte
 	longestChunk := strings.Repeat("A", 16384)
@@ -110,7 +110,7 @@ func TestDetectMultipleDockerHeaderOnAChunkedLine(t *testing.T) {
 	input = append(input, []byte("2018-06-14T18:27:03.246999277Z the very end\n")...)
 	l2 := len(input)
 
-	lb.Process(input)
+	fr.Process(input)
 
 	assert.Equal(t, []string{
 		string(input[:l1-1]),
@@ -127,13 +127,13 @@ func TestDecoderNoNewLineBeforeDockerHeader(t *testing.T) {
 		gotLens = append(gotLens, rawDataLen)
 	}
 
-	lb := NewLineBreaker(outputFn, DockerStream, 256000)
+	fr := NewFramer(outputFn, DockerStream, 256000)
 
 	for i := 4; i < 8; i++ {
 		input := []byte("hello")
 		input = append(input, getDummyHeader(i)...) // docker header
 		input = append(input, []byte("2018-06-14T18:27:03.246999277Z app logs\n")...)
-		lb.Process(input)
+		fr.Process(input)
 		assert.Equal(t, string(input[:len(input)-1]), gotContent[i-4])
 		assert.Equal(t, len(input), gotLens[i-4])
 	}

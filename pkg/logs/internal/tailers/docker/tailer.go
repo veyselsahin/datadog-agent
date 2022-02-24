@@ -21,6 +21,8 @@ import (
 
 	"github.com/DataDog/datadog-agent/pkg/logs/config"
 	"github.com/DataDog/datadog-agent/pkg/logs/decoder"
+	"github.com/DataDog/datadog-agent/pkg/logs/decoder/breaker"
+	"github.com/DataDog/datadog-agent/pkg/logs/internal/parsers/dockerstream"
 	"github.com/DataDog/datadog-agent/pkg/logs/message"
 	"github.com/DataDog/datadog-agent/pkg/logs/tag"
 
@@ -80,7 +82,7 @@ func NewTailer(cli *dockerutil.DockerUtil, containerID string, source *config.Lo
 	return &Tailer{
 		ContainerID:        containerID,
 		outputChan:         outputChan,
-		decoder:            InitializeDecoder(source, containerID),
+		decoder:            decoder.NewDecoderWithFraming(source, dockerstream.New(containerID), breaker.DockerStream, nil),
 		Source:             source,
 		tagProvider:        tag.NewProvider(dockerutil.ContainerIDToTaggerEntityName(containerID)),
 		dockerutil:         cli,

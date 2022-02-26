@@ -162,6 +162,7 @@ type Event struct {
 	InvalidateDentry InvalidateDentryEvent `field:"-"`
 	ArgsEnvs         ArgsEnvsEvent         `field:"-"`
 	MountReleased    MountReleasedEvent    `field:"-"`
+	CgroupTracing    CgroupTracingEvent    `field:"-"`
 }
 
 // GetType returns the event type
@@ -685,4 +686,10 @@ type SignalEvent struct {
 	PID                     uint32             `field:"pid"`    // Target PID
 	Target                  ProcessContext     `field:"target"` // Target process context
 	TargetProcessCacheEntry *ProcessCacheEntry `field:"-"`
+}
+
+// CgroupTracingEvent is used to signal that a new cgroup should be traced by the activity dump manager
+type CgroupTracingEvent struct {
+	ContainerContext ContainerContext
+	TimeoutRaw       uint64
 }

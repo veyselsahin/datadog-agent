@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/DataDog/datadog-agent/pkg/security/secl/model"
+
 	"github.com/DataDog/datadog-agent/cmd/system-probe/config"
 	aconfig "github.com/DataDog/datadog-agent/pkg/config"
 	"github.com/DataDog/datadog-agent/pkg/ebpf"
@@ -97,6 +99,22 @@ type Config struct {
 	// ActivityDumpCleanupPeriod defines the period at which the activity dump manager should perform its cleanup
 	// operation.
 	ActivityDumpCleanupPeriod time.Duration
+	// ActivityDumpTagsResolutionPeriod defines the period at which the activity dump manager should try to resolve
+	// missing container tags.
+	ActivityDumpTagsResolutionPeriod time.Duration
+	// ActivityDumpTracedCgroupsCount defines the maximum count of cgroups that should be monitored concurrently. Set
+	// this parameter to -1 to monitor all cgroups at the same time. Leave this parameter to 0 to prevent the generation
+	// of activity dumps based on cgroups.
+	ActivityDumpTracedCgroupsCount int
+	// ActivityDumpTracedEventTypes defines the list of events that should be captured in an activity dump. Leave this
+	// parameter empty to monitor all event types. If not already present, the `exec` event will automatically be added
+	// to this list.
+	ActivityDumpTracedEventTypes []model.EventType
+	// ActivityDumpDefaultDumpTimeout defines the default activity dump timeout.
+	ActivityDumpDefaultDumpTimeout time.Duration
+	// ActivityDumpCgroupsWaitListSize defines the size of the cgroup wait list. The wait list is used to introduce a
+	// delay between 2 activity dumps of the same cgroup.
+	ActivityDumpCgroupsWaitListSize int
 }
 
 // IsEnabled returns true if any feature is enabled. Has to be applied in config package too
@@ -141,6 +159,11 @@ func NewConfig(cfg *config.Config) (*Config, error) {
 		RuntimeCompiledConstantsIsSet:      aconfig.Datadog.IsSet("runtime_security_config.enable_runtime_compiled_constants"),
 		ActivityDumpEnabled:                aconfig.Datadog.GetBool("runtime_security_config.activity_dump_manager.enabled"),
 		ActivityDumpCleanupPeriod:          time.Duration(aconfig.Datadog.GetInt("runtime_security_config.activity_dump_manager.cleanup_period")) * time.Second,
+		ActivityDumpTagsResolutionPeriod:   time.Duration(aconfig.Datadog.GetInt("runtime_security_config.activity_dump_manager.tags_resolution_period")) * time.Second,
+		ActivityDumpTracedCgroupsCount:     aconfig.Datadog.GetInt("runtime_security_config.activity_dump_manager.traced_cgroups_count"),
+		ActivityDumpTracedEventTypes:       model.ParseEventTypeStringSlice(aconfig.Datadog.GetStringSlice("runtime_security_config.activity_dump_manager.traced_event_types")),
+		ActivityDumpDefaultDumpTimeout:     time.Duration(aconfig.Datadog.GetInt("runtime_security_config.activity_dump_manager.default_dump_timeout")) * time.Minute,
+		ActivityDumpCgroupsWaitListSize:    aconfig.Datadog.GetInt("runtime_security_config.activity_dump_manager.cgroups_wait_list_size"),
 	}
 
 	// if runtime is enabled then we force fim
@@ -175,6 +198,16 @@ func NewConfig(cfg *config.Config) (*Config, error) {
 	serviceName := utils.GetTagValue("service", aconfig.GetConfiguredTags(true))
 	if len(serviceName) > 0 {
 		c.HostServiceName = fmt.Sprintf("service:%s", serviceName)
+	}
+
+	var found bool
+	for _, evtType := range c.ActivityDumpTracedEventTypes {
+		if evtType == model.ExecEventType {
+			found = true
+		}
+	}
+	if !found {
+		c.ActivityDumpTracedEventTypes = append(c.ActivityDumpTracedEventTypes, model.ExecEventType)
 	}
 
 	return c, nil

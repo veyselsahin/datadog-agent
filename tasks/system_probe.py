@@ -6,6 +6,8 @@ import re
 import shutil
 import sys
 import tempfile
+import csv
+
 from subprocess import check_output
 
 from invoke import task
@@ -51,6 +53,7 @@ def build(
     nikos_embedded_path=None,
     bundle_ebpf=False,
     parallel_build=True,
+    build_binary=True,
 ):
     """
     Build the system_probe
@@ -76,6 +79,10 @@ def build(
         build_object_files(ctx, parallel_build=parallel_build)
 
     generate_cgo_types(ctx, windows=windows)
+
+    if not build_binary:
+        return
+
     ldflags, gcflags, env = get_build_flags(
         ctx,
         major_version=major_version,
@@ -117,8 +124,10 @@ def test(
     runtime_compiled=False,
     skip_linters=False,
     run=None,
+    bench=None,
     windows=is_windows,
     parallel_build=True,
+    result_file=None,
 ):
     """
     Run tests on eBPF parts
@@ -140,6 +149,8 @@ def test(
     if not skip_object_files and not windows:
         build_object_files(ctx, parallel_build=parallel_build)
 
+    generate_cgo_types(ctx, windows=windows)
+
     build_tags = [NPM_TAG]
     if not windows:
         build_tags.append(BPF_TAG)
@@ -151,6 +162,8 @@ def test(
         "output_params": "-c -o " + output_path if output_path else "",
         "pkgs": packages,
         "run": "-run " + run if run else "",
+        "bench": "-benchmem -bench " + bench if bench else "",
+        "result": "| tee " + result_file if result_file else "",
     }
 
     _, _, env = get_build_flags(ctx)
@@ -158,7 +171,7 @@ def test(
     if runtime_compiled:
         env['DD_TESTS_RUNTIME_COMPILED'] = "1"
 
-    cmd = 'go test -mod=mod -v -tags "{build_tags}" {output_params} {pkgs} {run}'
+    cmd = 'go test -mod=mod -v -tags "{build_tags}" {output_params} {pkgs} {run} {bench} {result}'
     if not windows and not output_path and not is_root():
         cmd = 'sudo -E ' + cmd
 
@@ -634,6 +647,46 @@ def generate_runtime_files(ctx):
     ]
     for f in runtime_compiler_files:
         ctx.run(f"go generate -mod=mod -tags {BPF_TAG} {f}")
+
+
+@task
+def bench_network_agent(ctx, compare_ref=None, bench="."):
+    ctx.run("git update-index -q --refresh")
+    res = ctx.run("git diff-index --exit-code --quiet HEAD", warn=True)
+    if res.exited is None or res.exited > 0:
+        print("Uncommitted changes")
+        raise Exit(code=1)
+
+    cur_ref = ctx.run("git rev-parse --abbrev-ref HEAD").stdout.strip()
+    temp_folder = tempfile.mkdtemp(prefix="netbench-")
+
+    head_path = None
+    if compare_ref:
+        head_path = os.path.join(temp_folder, "head_results.txt")
+
+    test(ctx, run="^$", bench=bench, result_file=head_path, skip_linters=True)
+
+    if not compare_ref:
+        return
+
+    ctx.run(f"git reset --hard HEAD")
+    ctx.run(f"git checkout {compare_ref}")
+
+    cmp_path = os.path.join(temp_folder, "cmp_results.txt")
+    test(ctx, run="^$", bench=bench, result_file=cmp_path, skip_linters=True)
+
+    stat_path = os.path.join(temp_folder, "stat_results.txt")
+    ctx.run(f"benchstat {cmp_path} {head_path} > {stat_path}")
+
+    ctx.run(f"git reset --hard HEAD")
+    ctx.run(f"git checkout {cur_ref}")
+
+    with open(stat_path) as file:
+        benchresults = csv.DictReader(file, delimiter="\t", quoting=csv.QUOTE_NONE)
+        for bench in benchresults:
+            if bench["delta"].strip() != "~":
+                print("\t".join(bench.values()))
+
 
 
 def replace_cgo_tag_absolute_path(file_path):

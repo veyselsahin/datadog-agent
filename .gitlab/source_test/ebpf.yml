@@ -8,31 +8,12 @@
   - mkdir -p $NIKOS_EMBEDDED_PATH
   - tar -xf /tmp/nikos.tar.gz -C $NIKOS_EMBEDDED_PATH
 
-.build_sysprobe_artifacts:
-  - inv -e system-probe.object-files
-  - inv -e system-probe.kitchen-prepare
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/tracer.o $CI_PROJECT_DIR/.tmp/binary-ebpf/tracer.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/tracer-debug.o $CI_PROJECT_DIR/.tmp/binary-ebpf/tracer-debug.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/offset-guess.o $CI_PROJECT_DIR/.tmp/binary-ebpf/offset-guess.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/offset-guess-debug.o $CI_PROJECT_DIR/.tmp/binary-ebpf/offset-guess-debug.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/http.o $CI_PROJECT_DIR/.tmp/binary-ebpf/http.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/http-debug.o $CI_PROJECT_DIR/.tmp/binary-ebpf/http-debug.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/dns.o $CI_PROJECT_DIR/.tmp/binary-ebpf/dns.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/dns-debug.o $CI_PROJECT_DIR/.tmp/binary-ebpf/dns-debug.o
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/runtime/tracer.c $CI_PROJECT_DIR/.tmp/binary-ebpf/tracer.c
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/runtime/http.c $CI_PROJECT_DIR/.tmp/binary-ebpf/http.c
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/runtime/runtime-security.c $CI_PROJECT_DIR/.tmp/binary-ebpf/runtime-security.c
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/runtime/conntrack.c $CI_PROJECT_DIR/.tmp/binary-ebpf/conntrack.c
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/runtime/oom-kill.c $CI_PROJECT_DIR/.tmp/binary-ebpf/oom-kill.c
-  - cp $SRC_PATH/pkg/ebpf/bytecode/build/runtime/tcp-queue-length.c $CI_PROJECT_DIR/.tmp/binary-ebpf/tcp-queue-length.c
-
 # Run tests for eBPF code
 .tests_linux_ebpf:
   stage: source_test
   artifacts:
     when: always
     paths:
-      - $CI_PROJECT_DIR/.tmp/binary-ebpf
       - $DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files
       - $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files
 
@@ -60,11 +41,11 @@ tests_ebpf_x64:
   before_script:
     - !reference [.retrieve_linux_go_deps]
     - !reference [.retrieve_linux_go_tools_deps]
-    - mkdir -p $CI_PROJECT_DIR/.tmp/binary-ebpf
     - cd $SRC_PATH
     - !reference [.retrieve_sysprobe_deps]
   script:
-    - !reference [.build_sysprobe_artifacts]
+    - inv -e system-probe.object-files
+    - inv -e system-probe.kitchen-prepare --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/tests
     - inv -e install-tools
     - export PATH=$PATH:$GOPATH/bin
     - invoke -e security-agent.build-embed-syscall-tester
@@ -74,6 +55,11 @@ tests_ebpf_x64:
     - inv -e security-agent.build-stress-tests --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/stresssuite
     # Copy nikos archive to be extracted in kitchen tests
     - cp /tmp/nikos.tar.gz $DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/nikos.tar.gz
+    # prepare files for comparison benchmarking
+    - git reset --hard HEAD
+    - git checkout origin/main
+    - inv -e system-probe.object-files
+    - inv -e system-probe.kitchen-prepare --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 
 tests_ebpf_arm64:
   extends: .tests_linux_ebpf
@@ -85,14 +71,14 @@ tests_ebpf_arm64:
   before_script:
     - !reference [.retrieve_linux_go_deps]
     - !reference [.retrieve_linux_go_tools_deps]
-    - mkdir -p $CI_PROJECT_DIR/.tmp/binary-ebpf
     # Hack to work around the cloning issue with arm runners
     - mkdir -p $GOPATH/src/github.com/DataDog
     - cp -R $GOPATH/src/github.com/*/*/DataDog/datadog-agent $GOPATH/src/github.com/DataDog
     - cd $SRC_PATH
     - !reference [.retrieve_sysprobe_deps]
   script:
-    - !reference [.build_sysprobe_artifacts]
+    - inv -e system-probe.object-files
+    - inv -e system-probe.kitchen-prepare --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/tests
     - inv -e install-tools
     - export PATH=$PATH:$GOPATH/bin
     - invoke -e security-agent.build-embed-syscall-tester --arch arm64
@@ -102,6 +88,11 @@ tests_ebpf_arm64:
     - inv -e security-agent.build-stress-tests --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/stresssuite
     # Copy nikos archive to be extracted in kitchen tests
     - cp /tmp/nikos.tar.gz $DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/nikos.tar.gz
+    # prepare files for comparison benchmarking
+    - git reset --hard HEAD
+    - git checkout origin/main
+    - inv -e system-probe.object-files
+    - inv -e system-probe.kitchen-prepare --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 
 tests_windows_sysprobe_x64:
   extends: .tests_windows_sysprobe

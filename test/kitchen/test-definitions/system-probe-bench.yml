@@ -1,0 +1,10 @@
+suites:
+- name: system-probe-bench
+  run_list:
+    - recipe[dd-system-probe-check]
+  attributes:
+    dd-system-probe-check:
+      bench: true
+    apt:
+      unattended_upgrades:
+        enable: false

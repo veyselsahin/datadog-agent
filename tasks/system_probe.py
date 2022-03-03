@@ -179,21 +179,21 @@ def test(
 
 
 @task
-def kitchen_prepare(ctx, windows=is_windows):
+def kitchen_prepare(ctx, windows=is_windows, output=KITCHEN_ARTIFACT_DIR):
     """
     Compile test suite for kitchen
     """
 
     # Clean up previous build
-    if os.path.exists(KITCHEN_ARTIFACT_DIR):
-        shutil.rmtree(KITCHEN_ARTIFACT_DIR)
+    if os.path.exists(output):
+        shutil.rmtree(output)
 
     build_tags = [NPM_TAG]
     if not windows:
         build_tags.append(BPF_TAG)
 
     # Retrieve a list of all packages we want to test
-    # This handles the elipsis notation (eg. ./pkg/ebpf/...)
+    # This handles the ellipsis notation (eg. ./pkg/ebpf/...)
     target_packages = []
     for pkg in TEST_PACKAGES_LIST:
         target_packages += (
@@ -213,7 +213,7 @@ def kitchen_prepare(ctx, windows=is_windows):
     # test/kitchen/site-cookbooks/dd-system-probe-check/files/default/tests/pkg/ebpf/testsuite
     # test/kitchen/site-cookbooks/dd-system-probe-check/files/default/tests/pkg/ebpf/bytecode/testsuite
     for i, pkg in enumerate(target_packages):
-        target_path = os.path.join(KITCHEN_ARTIFACT_DIR, re.sub("^.*datadog-agent.", "", pkg))
+        target_path = os.path.join(output, re.sub("^.*datadog-agent.", "", pkg))
         target_bin = "testsuite"
         if windows:
             target_bin = "testsuite.exe"
@@ -647,46 +647,6 @@ def generate_runtime_files(ctx):
     ]
     for f in runtime_compiler_files:
         ctx.run(f"go generate -mod=mod -tags {BPF_TAG} {f}")
-
-
-@task
-def bench_network_agent(ctx, compare_ref=None, bench="."):
-    ctx.run("git update-index -q --refresh")
-    res = ctx.run("git diff-index --exit-code --quiet HEAD", warn=True)
-    if res.exited is None or res.exited > 0:
-        print("Uncommitted changes")
-        raise Exit(code=1)
-
-    cur_ref = ctx.run("git rev-parse --abbrev-ref HEAD").stdout.strip()
-    temp_folder = tempfile.mkdtemp(prefix="netbench-")
-
-    head_path = None
-    if compare_ref:
-        head_path = os.path.join(temp_folder, "head_results.txt")
-
-    test(ctx, run="^$", bench=bench, result_file=head_path, skip_linters=True)
-
-    if not compare_ref:
-        return
-
-    ctx.run(f"git reset --hard HEAD")
-    ctx.run(f"git checkout {compare_ref}")
-
-    cmp_path = os.path.join(temp_folder, "cmp_results.txt")
-    test(ctx, run="^$", bench=bench, result_file=cmp_path, skip_linters=True)
-
-    stat_path = os.path.join(temp_folder, "stat_results.txt")
-    ctx.run(f"benchstat {cmp_path} {head_path} > {stat_path}")
-
-    ctx.run(f"git reset --hard HEAD")
-    ctx.run(f"git checkout {cur_ref}")
-
-    with open(stat_path) as file:
-        benchresults = csv.DictReader(file, delimiter="\t", quoting=csv.QUOTE_NONE)
-        for bench in benchresults:
-            if bench["delta"].strip() != "~":
-                print("\t".join(bench.values()))
-
 
 
 def replace_cgo_tag_absolute_path(file_path):

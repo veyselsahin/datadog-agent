@@ -45,14 +45,13 @@ if node['dd-system-probe-check']['bench']
     end
   end
 
-  remote_file ::File.join(base_dir, "benchstat") do
+  cookbook_file ::File.join(base_dir, "benchstat") do
     source 'benchstat'
     mode '755'
-    files_mode '755'
     sensitive true
     case
     when !platform?('windows')
-      files_owner 'root'
+      owner 'root'
     end
   end
 end

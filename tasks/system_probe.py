@@ -654,7 +654,7 @@ def prepare_ref(ctx, output, compare_ref="origin/main"):
     ctx.run("git reset --hard HEAD")
     ctx.run(f"git checkout {compare_ref}")
     object_files(ctx)
-    kitchen_prepare(ctx, output)
+    kitchen_prepare(ctx, output=output)
 
 
 def replace_cgo_tag_absolute_path(file_path):

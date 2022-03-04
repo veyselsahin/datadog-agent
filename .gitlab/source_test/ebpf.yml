@@ -56,10 +56,9 @@ tests_ebpf_x64:
     # Copy nikos archive to be extracted in kitchen tests
     - cp /tmp/nikos.tar.gz $DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/nikos.tar.gz
     # prepare files for comparison benchmarking
-    - git reset --hard HEAD
-    - git checkout origin/main
-    - inv -e system-probe.object-files
-    - inv -e system-probe.kitchen-prepare --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
+    - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/benchstat
+    # use task for this, so we use tasks from this branch
+    - inv -e system-probe.prepare_ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 
 tests_ebpf_arm64:
   extends: .tests_linux_ebpf
@@ -89,10 +88,9 @@ tests_ebpf_arm64:
     # Copy nikos archive to be extracted in kitchen tests
     - cp /tmp/nikos.tar.gz $DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/nikos.tar.gz
     # prepare files for comparison benchmarking
-    - git reset --hard HEAD
-    - git checkout origin/main
-    - inv -e system-probe.object-files
-    - inv -e system-probe.kitchen-prepare --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
+    - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/benchstat
+    # use task for this, so we use tasks from this branch
+    - inv -e system-probe.prepare_ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 
 tests_windows_sysprobe_x64:
   extends: .tests_windows_sysprobe

@@ -649,6 +649,13 @@ def generate_runtime_files(ctx):
         ctx.run(f"go generate -mod=mod -tags {BPF_TAG} {f}")
 
 
+def prepare_ref(ctx, output, compare_ref="origin/main"):
+    ctx.run("git reset --hard HEAD")
+    ctx.run(f"git checkout {compare_ref}")
+    object_files(ctx)
+    kitchen_prepare(ctx, output)
+
+
 def replace_cgo_tag_absolute_path(file_path):
     # read
     f = open(file_path)

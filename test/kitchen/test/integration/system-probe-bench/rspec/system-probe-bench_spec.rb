@@ -91,7 +91,7 @@ Dir.glob('/tmp/system-probe/head/**/testsuite').each do |f|
           if data[3] != "~" then
             if !regressions.has_key(header_line) then
               regressions[header_line] = []
-            do
+            end
             regressions[header_line].append(line)
           end
         end

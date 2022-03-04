@@ -54,6 +54,8 @@ func (f *flowAccumulator) add(flowToAdd *common.Flow) {
 		newAggFlow.StartTimestamp = minUint64(newAggFlow.StartTimestamp, flowToAdd.StartTimestamp)
 		newAggFlow.EndTimestamp = maxUint64(newAggFlow.EndTimestamp, flowToAdd.EndTimestamp)
 
+		// TODO: Cumulate TCPFlags (Cumulative of all the TCP flags seen for this flow)
+
 		log.Tracef("Existing Aggregated Flow (digest=%s): %+v", flowToAdd.AggregationHash(), aggFlow)
 		log.Tracef("New Aggregated Flow (digest=%s): %+v", flowToAdd.AggregationHash(), newAggFlow)
 		f.flows[flowToAdd.AggregationHash()] = &newAggFlow

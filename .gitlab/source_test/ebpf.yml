@@ -56,7 +56,7 @@ tests_ebpf_x64:
     # Copy nikos archive to be extracted in kitchen tests
     - cp /tmp/nikos.tar.gz $DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/nikos.tar.gz
     # prepare files for comparison benchmarking
-    - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/benchstat
+    - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/benchstat
     # use task for this, so we use tasks from this branch
     - inv -e system-probe.prepare-ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 
@@ -88,7 +88,7 @@ tests_ebpf_arm64:
     # Copy nikos archive to be extracted in kitchen tests
     - cp /tmp/nikos.tar.gz $DD_AGENT_TESTING_DIR/site-cookbooks/dd-security-agent-check/files/nikos.tar.gz
     # prepare files for comparison benchmarking
-    - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/benchstat
+    - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/benchstat
     # use task for this, so we use tasks from this branch
     - inv -e system-probe.prepare-ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 

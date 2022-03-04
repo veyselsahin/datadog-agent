@@ -1,4 +1,4 @@
-node['dd-system-probe-check']['bench'] = false
+default['dd-system-probe-check']['bench'] = false
 
 if platform?('centos')
   default['yum-centos']['vault_repos'][node[:platform_version]]['enabled'] = true

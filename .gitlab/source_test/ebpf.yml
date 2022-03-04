@@ -58,7 +58,7 @@ tests_ebpf_x64:
     # prepare files for comparison benchmarking
     - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/benchstat
     # use task for this, so we use tasks from this branch
-    - inv -e system-probe.prepare_ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
+    - inv -e system-probe.prepare-ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 
 tests_ebpf_arm64:
   extends: .tests_linux_ebpf
@@ -90,7 +90,7 @@ tests_ebpf_arm64:
     # prepare files for comparison benchmarking
     - cp $GOPATH/bin/benchstat $DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/benchstat
     # use task for this, so we use tasks from this branch
-    - inv -e system-probe.prepare_ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
+    - inv -e system-probe.prepare-ref --output=$DD_AGENT_TESTING_DIR/site-cookbooks/dd-system-probe-check/files/default/main
 
 tests_windows_sysprobe_x64:
   extends: .tests_windows_sysprobe

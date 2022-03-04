@@ -20,7 +20,7 @@ end
 
 def regression_output(r)
   out = ""
-  r.each |hdr, lines|
+  r.each do |hdr, lines|
     out += hdr
     lines.each { |l| out += l + "\n" }
   end

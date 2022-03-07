@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'open3'
+require 'fileutils'
 
 GOLANG_TEST_FAILURE = /FAIL:/
 
@@ -37,19 +38,17 @@ Dir.glob('/tmp/system-probe/head/**/testsuite').each do |f|
 
   describe "system-probe benchmarks for #{pkg}" do
     it 'successfully runs' do
-      print "HEAD"
+      print "HEAD\n"
       Dir.chdir(File.dirname(f)) do
         Open3.popen2e({"DD_SYSTEM_PROBE_BPF_DIR"=>"/tmp/system-probe/head/pkg/ebpf/bytecode/build"}, "sudo", "-E", f, "-test.v", "-test.run=^$", "-test.benchmem", "-test.bench=.") do |_, output, wait_thr|
           test_failures = check_output(output, wait_thr)
           expect(test_failures).to be_empty, test_failures.join("\n")
-
-          File.open(head_results_path, "w") do |results|
-            results.write output
-          end
+          FileUtils.mkdir_p(File.dirname(head_results_path))
+          File.write(head_results_path, output)
         end
       end
 
-      print "MAIN"
+      print "MAIN\n"
       maindir = File.join('/tmp/system-probe/main', pkg)
       Dir.chdir(maindir) do
         mf = File.join(maindir, 'testsuite')
@@ -60,14 +59,12 @@ Dir.glob('/tmp/system-probe/head/**/testsuite').each do |f|
         Open3.popen2e({"DD_SYSTEM_PROBE_BPF_DIR"=>"/tmp/system-probe/main/pkg/ebpf/bytecode/build"}, "sudo", "-E", mf, "-test.v", "-test.run=^$", "-test.benchmem", "-test.bench=.") do |_, output, wait_thr|
           test_failures = check_output(output, wait_thr)
           expect(test_failures).to be_empty, test_failures.join("\n")
-
-          File.open(main_results_path, "w") do |results|
-            results.write output
-          end
+          FileUtils.mkdir_p(File.dirname(main_results_path))
+          File.write(main_results_path, output)
         end
       end
 
-      print "REGRESSIONS"
+      print "REGRESSIONS\n"
       regressions = {}
 
       Open3.popen2e({}, "sudo", "-E", "/tmp/system-probe/benchstat", main_results_path, head_results_path) do |_, output, wait_thr|

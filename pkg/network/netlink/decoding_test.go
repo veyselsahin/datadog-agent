@@ -19,6 +19,7 @@ import (
 
 	"github.com/mdlayher/netlink"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeAndReleaseEvent(t *testing.T) {
@@ -53,10 +54,11 @@ func TestDecodeAndReleaseEvent(t *testing.T) {
 
 func BenchmarkDecodeSingleMessage(b *testing.B) {
 	b.ReportAllocs()
-	messages, err := loadDumpData()
+	messages, err := loadDumpData(b)
 	if err != nil {
-		return
+		b.Fatalf("unable to load dump data: %s", err)
 	}
+	require.GreaterOrEqual(b, len(messages), 1)
 
 	e := Event{msgs: messages[:1]}
 	decoder := NewDecoder()
@@ -69,10 +71,11 @@ func BenchmarkDecodeSingleMessage(b *testing.B) {
 
 func BenchmarkDecodeMultipleMessages(b *testing.B) {
 	b.ReportAllocs()
-	messages, err := loadDumpData()
+	messages, err := loadDumpData(b)
 	if err != nil {
-		return
+		b.Fatalf("unable to load dump data: %s", err)
 	}
+	require.GreaterOrEqual(b, len(messages), 1)
 
 	e := Event{msgs: messages}
 	decoder := NewDecoder()
@@ -83,13 +86,15 @@ func BenchmarkDecodeMultipleMessages(b *testing.B) {
 	}
 }
 
-func loadDumpData() ([]netlink.Message, error) {
+func loadDumpData(b require.TestingT) ([]netlink.Message, error) {
 	f, err := ioutil.TempFile("", "message_dump")
 	if err != nil {
 		return nil, err
 	}
 	defer os.Remove(f.Name())
 	defer f.Close()
+
+	testMessageDump(b, f, net.ParseIP("1.1.1.1"), net.ParseIP("2.2.2.2"))
 
 	var messages []netlink.Message
 	sizeBuffer := make([]byte, 4)

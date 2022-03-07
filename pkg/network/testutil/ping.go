@@ -8,7 +8,6 @@ package testutil
 import (
 	"fmt"
 	"net"
-	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -16,7 +15,7 @@ import (
 
 // PingTCP connects to the provided IP address over TCP/TCPv6, sends the string "ping",
 // reads from the connection, and returns the open connection for further use/inspection.
-func PingTCP(t *testing.T, ip net.IP, port int) net.Conn {
+func PingTCP(t require.TestingT, ip net.IP, port int) net.Conn {
 	addr := fmt.Sprintf("%s:%d", ip, port)
 	network := "tcp"
 	if isIpv6(ip) {
@@ -38,7 +37,7 @@ func PingTCP(t *testing.T, ip net.IP, port int) net.Conn {
 
 // PingUDP connects to the provided IP address over UDP/UDPv6, sends the string "ping",
 // and returns the open connection for further use/inspection.
-func PingUDP(t *testing.T, ip net.IP, port int) net.Conn {
+func PingUDP(t require.TestingT, ip net.IP, port int) net.Conn {
 	network := "udp"
 	if isIpv6(ip) {
 		network = "udp6"

@@ -102,7 +102,7 @@ func TestMessageDump6(t *testing.T) {
 	testMessageDump(t, f, net.ParseIP("fd00::1"), net.ParseIP("fd00::2"))
 }
 
-func testMessageDump(t *testing.T, f *os.File, serverIP, clientIP net.IP) {
+func testMessageDump(t require.TestingT, f *os.File, serverIP, clientIP net.IP) {
 	consumer := NewConsumer("/proc", 500, false)
 	events, err := consumer.Events()
 	require.NoError(t, err)

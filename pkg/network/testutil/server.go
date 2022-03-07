@@ -37,7 +37,7 @@ func StartServerTCPNs(t *testing.T, ip net.IP, port int, ns string) io.Closer {
 // StartServerTCP starts a TCP server listening at provided IP address and port.
 // It will respond to any connection with "hello" and then close the connection.
 // It returns an io.Closer that should be Close'd when you are finished with it.
-func StartServerTCP(t *testing.T, ip net.IP, port int) io.Closer {
+func StartServerTCP(t require.TestingT, ip net.IP, port int) io.Closer {
 	ch := make(chan struct{})
 	addr := fmt.Sprintf("%s:%d", ip, port)
 	network := "tcp"
@@ -83,7 +83,7 @@ func StartServerUDPNs(t *testing.T, ip net.IP, port int, ns string) io.Closer {
 // StartServerUDP starts a UDP server listening at provided IP address and port.
 // It does not respond in any fashion to sent datagrams.
 // It returns an io.Closer that should be Close'd when you are finished with it.
-func StartServerUDP(t *testing.T, ip net.IP, port int) io.Closer {
+func StartServerUDP(t require.TestingT, ip net.IP, port int) io.Closer {
 	ch := make(chan struct{})
 	network := "udp"
 	if isIpv6(ip) {

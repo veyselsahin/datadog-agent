@@ -229,6 +229,9 @@ def get_build_flags(
     elif os.environ.get("NO_GO_OPT"):
         gcflags = "-N -l"
 
+    gcflags = "all=-N -l -dwarf"
+    # ldflags = "-compressdwarf=false"
+
     # On macOS work around https://github.com/golang/go/issues/38824
     # as done in https://go-review.googlesource.com/c/go/+/372798
     if sys.platform == "darwin":

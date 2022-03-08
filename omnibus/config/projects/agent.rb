@@ -320,6 +320,6 @@ if linux? or windows?
   # the stripper will drop the symbols in a `.debug` folder in the installdir
   # we want to make sure that directory is not in the main build, while present
   # in the debug package.
-  strip_build true
+  strip_build false
   debug_path ".debug"  # the strip symbols will be in here
 end
